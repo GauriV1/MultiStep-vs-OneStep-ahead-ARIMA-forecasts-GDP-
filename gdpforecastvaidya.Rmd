@@ -1,0 +1,155 @@
+---
+title: "GDPforecast"
+author: "Gauri Vaidya"
+date: "2025-10-30"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load-packages, include=FALSE} 
+library(forecast)
+library(tseries)
+library(lmtest) #coeffs are stat sig or not
+library(zoo)
+
+```
+
+```{r}
+setwd("/Users/gaurivaidya/Desktop/Whitman/Sem3/Time series/Rcw/gdpf")
+Data <- read.csv("GDPC11.csv")
+y <- ts(Data$GDPC1, start = c(1947,1), frequency =4)
+length(y)
+
+GDP <- ts(diff(log(y), lag=1), start = c(1947,2), frequency =4)
+length(GDP)
+```
+
+```{r}
+GDP1 <- window(GDP, end=c(2008,4))
+length(GDP1)
+
+```
+```{r}
+GDP2 <- window(GDP, start=c(2009,1))
+H <- length(GDP2)
+H
+```
+
+
+```{r}
+par(mfrow=c(1,2))
+acf(ts(GDP1))
+pacf(ts(GDP1))
+```
+```{r}
+GDP10 <- ts(GDP1, start = c(1947,2), end = c(2008,4), frequency=4)
+acf(GDP10)
+Pacf(GDP10)
+```
+
+
+```{r}
+m1 <- Arima(GDP1, order=c(1,0,0),include.mean = TRUE)
+m1
+
+```
+```{r}
+res1 <- m1$residuals
+acf(res1)
+adf.test(res1)
+```
+
+
+
+```{r}
+res1 <- m1$residuals
+acf(res1)
+adf.test(res1)
+Box.test(res1, lag=8, type = "Ljung-Box")
+Box.test(res1, lag=16, type = "Ljung-Box")
+Box.test(res1, lag=32, type = "Ljung-Box")
+coeftest(m1)
+```
+```{r}
+m2 <- Arima(GDP1, order=c(1,0,1),include.mean = TRUE)
+m2
+```
+```{r}
+res2 <- m2$residuals
+acf(res2)
+```
+```{r}
+adf.test(res2)
+```
+```{r}
+Box.test(res2, lag=8, type = "Ljung-Box")
+Box.test(res2, lag=16, type = "Ljung-Box")
+Box.test(res2, lag=32, type = "Ljung-Box")
+coeftest(m2)
+```
+
+```{r}
+m4 <- Arima(GDP1, order=c(12,0,1),include.mean = TRUE)
+fixed = c(NA,0,0,0,0,0,0,0,0,0,NA,NA,NA)
+m4
+res4 <- m4$residuals
+acf(res4)
+adf.test(res4)
+Box.test(res4, lag=8, type = "Ljung-Box")
+Box.test(res4, lag=16, type = "Ljung-Box")
+Box.test(res4, lag=32, type = "Ljung-Box")
+coeftest(m4)
+```
+
+```{r}
+Box.test(res4, lag=32, type = "Ljung-Box")
+coeftest(m4)
+```
+
+```{r}
+m5 <-Arima(GDP1, order = c(12,0,2), fixed = c(NA, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, NA, NA, NA, NA), include.mean = TRUE)
+m5
+```
+
+```{r}
+res5 <- m5$residuals
+acf(res5)
+adf.test(res5)
+```
+
+```{r}
+Box.test(res5, lag=8, type = "Ljung-Box")
+```
+```{r}
+#ARIMA12,0,2
+first<-1947.25
+last<- 2008.75
+GDP11<-window(GDP,end=last)
+GDP22<-window(GDP,start=last+0.25)
+
+m4.mf<-forecast(m4,h=H,level=c(80,95))
+plot(m4.mf,xlim=c(1947,2016))
+
+m4.rol <- zoo()
+for (i in 1:length(GDP2))
+{
+  yy<- window(GDP,end=last+(i-1)/4)
+  m4_updt <-Arima(yy,order=c(12,0,1),fixed=c(NA,0,0,0,0,0,0,0,0,0,0,NA,NA,NA),   include.mean=TRUE)
+  
+  m4.rol<- c(m4.rol,forecast(m4_updt,h=1)$mean)
+}
+m4.rol<-ts(m4.rol,start=c(2009,1),frequency=4) 
+plot(m4.rol,type="o",pch=15,xlim=c(2005,2016), ylim =c(-0.03,0.04))
+
+lines(m4.rol, type="p",pch=15, col="red")
+
+lines(GDP,type="o",pch=16, lty="dotted")
+
+lines(GDP,type="o",pch=16, lty="solid")
+
+
+```
+
